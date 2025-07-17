@@ -8,19 +8,24 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      # 1. Checkout source code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
+          pip install py2app
 
+      # 4. Build the macOS .app
       - name: Build .app with py2app
         run: |
           echo "Running py2app build..."
@@ -29,25 +34,21 @@ jobs:
           echo "=== DIST DIRECTORY TREE ==="
           find dist || true
 
-      - name: Show logs and potential app name
+      # 5. Check for .app and zip it
+      - name: Package .app into ZIP
         run: |
-          echo "Listing dist contents:"
-          ls -lah dist || true
-          echo "Looking for .app bundles:"
-          find dist -name "*.app" || true
-
-      - name: Zip and Upload if found
-        if: success()
-        run: |
-          APP_PATH=$(find dist -name "*.app" | head -n 1)
+          APP_PATH=$(find dist -maxdepth 1 -name "*.app" | head -n 1)
           if [ -z "$APP_PATH" ]; then
             echo "::error ::No .app found after build"
             exit 1
           fi
-          echo "Found app: $APP_PATH"
-          zip -r macos-app.zip "$APP_PATH"
+          echo "Found app bundle: $APP_PATH"
+          ZIP_NAME="macos-app.zip"
+          echo "Zipping into $ZIP_NAME"
+          zip -r "$ZIP_NAME" "$APP_PATH"
         shell: bash
 
+      # 6. Upload ZIP artifact
       - name: Upload .app ZIP
         uses: actions/upload-artifact@v4
         with:
