@@ -8,7 +8,7 @@ OPTIONS = {
     'plist': {
         'CFBundleName': 'Pitzl Edelrid Scraper',
         'CFBundleDisplayName': 'Pitzl Edelrid Scraper',
-        'CFBundleIdentifier': 'com.Asad.yourapp',
+        'CFBundleIdentifier': 'com.asad.scraper',
         'CFBundleVersion': '0.1.0',
         'CFBundleShortVersionString': '0.1.0',
     }
