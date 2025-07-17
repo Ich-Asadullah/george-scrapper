@@ -6,14 +6,27 @@ on:
 jobs:
   build-macos:
     runs-on: macos-latest
+
+    env:
+      APP_SCRIPT: main.py              # your entry script
+      APP_EXPECTED_NAME: main.app      # py2app names bundle from script basename
+      APP_ZIP_NAME: macos-app.zip
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Show Python version on runner
+        run: python3 --version
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: "3.11"
+
+      - name: Upgrade pip tooling
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
 
       - name: Install dependencies
         run: |
@@ -21,10 +34,44 @@ jobs:
 
       - name: Build .app with py2app
         run: |
-          python setup.py py2app
+          echo "Running py2app..."
+          python setup.py py2app || { echo "py2app build failed"; exit 1; }
+          echo "Build complete. Listing dist/:"
+          ls -lah dist || true
+          echo "Recursive listing:"
+          find dist -maxdepth 4 -print
 
-      - name: Upload .app as artifact
+      - name: Verify .app exists
+        id: verify_app
+        run: |
+          if [ ! -d "dist/${APP_EXPECTED_NAME}" ]; then
+            echo "::error file=dist::Expected dist/${APP_EXPECTED_NAME} not found."
+            echo "Found contents of dist/:"
+            ls -lah dist || true
+            exit 1
+          fi
+          echo "app_path=dist/${APP_EXPECTED_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Zip .app bundle
+        run: |
+          cd dist
+          zip -r "../${APP_ZIP_NAME}" "${APP_EXPECTED_NAME}"
+          cd ..
+          ls -lah "${APP_ZIP_NAME}"
+
+      - name: Upload .app zip artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-app
-          path: dist/main.app
+          path: macos-app.zip
+          if-no-files-found: error
+          compression-level: 0  # already zipped; don't recompress
+
+      # Optional: also upload raw .app folder (un-zipped) for debugging
+      - name: Upload raw .app folder (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app-raw
+          path: dist/${APP_EXPECTED_NAME}
+          if-no-files-found: warn
