@@ -1,0 +1,30 @@
+name: Build macOS .app
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build .app with py2app
+        run: |
+          python setup.py py2app
+
+      - name: Upload .app as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-app
+          path: dist/main.app

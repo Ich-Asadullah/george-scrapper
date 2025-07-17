@@ -1,0 +1,5 @@
+requests
+aiohttp
+bs4
+py2app
+setuptools
